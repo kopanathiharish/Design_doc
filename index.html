@@ -1,0 +1,1054 @@
+<!DOCTYPE html>
+<html lang="en" class="bg-gray-100">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Advaita Admin Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <link rel="stylesheet" href="index.css">
+</head>
+<body class="flex h-screen font-sans" x-data="dashboardData()">
+
+  <!-- Sidebar -->
+  <aside class="w-64 bg-white border-r shadow-md p-4">
+    <h1 class="text-xl font-bold mb-6 text-blue-600">Advaita Admin</h1>
+    <nav class="space-y-4">
+      <a href="#" @click="activeTab = 'users'" :class="activeTab === 'users' ? 'text-blue-600 font-semibold' : 'text-gray-600 hover:text-blue-500'" class="flex items-center">
+        <i class="fas fa-users mr-2"></i>Users
+      </a>
+      <a href="#" @click="activeTab = 'subscriptions'" :class="activeTab === 'subscriptions' ? 'text-blue-600 font-semibold' : 'text-gray-600 hover:text-blue-500'" class="flex items-center">
+        <i class="fas fa-credit-card mr-2"></i>Subscriptions
+      </a>
+      <a href="#" @click="activeTab = 'expiring'" :class="activeTab === 'expiring' ? 'text-blue-600 font-semibold' : 'text-gray-600 hover:text-blue-500'" class="flex items-center">
+        <i class="fas fa-clock mr-2"></i>Expiring Soon
+      </a>
+      <a href="#" @click="activeTab = 'analytics'" :class="activeTab === 'analytics' ? 'text-blue-600 font-semibold' : 'text-gray-600 hover:text-blue-500'" class="flex items-center">
+        <i class="fas fa-chart-bar mr-2"></i>Analytics
+      </a>
+    </nav>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="flex-1 p-6 overflow-y-auto">
+    
+    <!-- Users Tab -->
+    <div x-show="activeTab === 'users'">
+      <header class="flex items-center justify-between mb-6">
+        <h2 class="text-2xl font-semibold">User Management</h2>
+        <div class="flex space-x-2">
+          <button @click="showCreateUserModal = true" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+            <i class="fas fa-plus mr-2"></i>Add User
+          </button>
+          <button class="border border-gray-300 text-gray-600 px-4 py-2 rounded hover:bg-gray-100">
+            <i class="fas fa-download mr-2"></i>Export
+          </button>
+        </div>
+      </header>
+
+      <!-- Search & Filters -->
+      <div class="flex items-center mb-4 space-x-4">
+        <input type="text" x-model="userSearch" placeholder="Search by name, institution, or email..."
+          class="w-full border px-4 py-2 rounded shadow-sm"/>
+        <select x-model="userSortBy" class="border px-4 py-2 rounded shadow-sm">
+          <option value="firstName">First Name</option>
+          <option value="lastName">Last Name</option>
+          <option value="institution">Institution</option>
+          <option value="email">Email</option>
+          <option value="expiryDate">Expiry Date</option>
+          <option value="activationDate">Activation Date</option>
+          <option value="createdDate">Created Date</option>
+        </select>
+        <button @click="userSortOrder = userSortOrder === 'asc' ? 'desc' : 'asc'" class="bg-gray-100 text-gray-600 px-4 py-2 rounded hover:bg-gray-200">
+          <i class="fas fa-sort" :class="userSortOrder === 'asc' ? 'fa-sort-up' : 'fa-sort-down'"></i>
+        </button>
+      </div>
+
+      <!-- User Table -->
+      <div class="overflow-x-auto bg-white shadow-md rounded">
+        <table class="min-w-full text-sm text-left">
+          <thead class="bg-gray-100 text-gray-700">
+            <tr>
+              <th class="px-4 py-2">First Name</th>
+              <th class="px-4 py-2">Last Name</th>
+              <th class="px-4 py-2">Institution</th>
+              <th class="px-4 py-2">Email</th>
+              <th class="px-4 py-2">Status</th>
+              <th class="px-4 py-2">Expiry</th>
+              <th class="px-4 py-2">Activation</th>
+              <th class="px-4 py-2">Created</th>
+              <th class="px-4 py-2">Reports Used</th>
+              <th class="px-4 py-2">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="text-gray-600">
+            <template x-for="user in filteredUsers" :key="user.id">
+              <tr class="border-t hover:bg-gray-50">
+                <td class="px-4 py-2" x-text="user.firstName"></td>
+                <td class="px-4 py-2" x-text="user.lastName"></td>
+                <td class="px-4 py-2" x-text="user.institution"></td>
+                <td class="px-4 py-2" x-text="user.email"></td>
+                <td class="px-4 py-2">
+                  <span :class="user.status === 'Active' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'" 
+                        class="px-2 py-1 rounded text-xs" x-text="user.status"></span>
+                </td>
+                <td class="px-4 py-2" x-text="user.expiryDate"></td>
+                <td class="px-4 py-2" x-text="user.activationDate"></td>
+                <td class="px-4 py-2" x-text="user.createdDate"></td>
+                <td class="px-4 py-2" x-text="user.reportsUsed + '/' + user.reportsTotal"></td>
+                <td class="px-4 py-2">
+                  <button @click="editUser(user)" class="text-blue-500 hover:underline mr-2">
+                    <i class="fas fa-edit"></i>
+                  </button>
+                  <button @click="viewUserHistory(user)" class="text-green-500 hover:underline">
+                    <i class="fas fa-history"></i>
+                  </button>
+                </td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Subscriptions Tab -->
+    <div x-show="activeTab === 'subscriptions'">
+      <header class="flex items-center justify-between mb-6">
+        <h2 class="text-2xl font-semibold">Subscription Management</h2>
+        <div class="flex space-x-2">
+          <button @click="showCreateSubscriptionModal = true" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+            <i class="fas fa-plus mr-2"></i>Create Subscription
+          </button>
+          <button @click="showAddEmailModal = true" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+            <i class="fas fa-envelope mr-2"></i>Add Email
+          </button>
+        </div>
+      </header>
+
+      <!-- Search & Filters -->
+      <div class="flex items-center mb-4 space-x-4">
+        <input type="text" x-model="subscriptionSearch" placeholder="Search subscriptions..."
+          class="w-full border px-4 py-2 rounded shadow-sm"/>
+        <select x-model="subscriptionSortBy" class="border px-4 py-2 rounded shadow-sm">
+          <option value="userFirstName">User First Name</option>
+          <option value="userLastName">User Last Name</option>
+          <option value="institution">Institution</option>
+          <option value="email">Email</option>
+          <option value="expiryDate">Expiry Date</option>
+          <option value="activationDate">Activation Date</option>
+          <option value="totalValue">Total Value</option>
+        </select>
+        <button @click="subscriptionSortOrder = subscriptionSortOrder === 'asc' ? 'desc' : 'asc'" class="bg-gray-100 text-gray-600 px-4 py-2 rounded hover:bg-gray-200">
+          <i class="fas fa-sort" :class="subscriptionSortOrder === 'asc' ? 'fa-sort-up' : 'fa-sort-down'"></i>
+        </button>
+      </div>
+
+      <!-- Subscription Table -->
+      <div class="overflow-x-auto bg-white shadow-md rounded">
+        <table class="min-w-full text-sm text-left">
+          <thead class="bg-gray-100 text-gray-700">
+            <tr>
+              <th class="px-4 py-2">User Name</th>
+              <th class="px-4 py-2">Institution</th>
+              <th class="px-4 py-2">Email</th>
+              <th class="px-4 py-2">Status</th>
+              <th class="px-4 py-2">Expiry</th>
+              <th class="px-4 py-2">Activation</th>
+              <th class="px-4 py-2">Reports</th>
+              <th class="px-4 py-2">Total Value</th>
+              <th class="px-4 py-2">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="text-gray-600">
+            <template x-for="subscription in filteredSubscriptions" :key="subscription.id">
+              <tr class="border-t hover:bg-gray-50">
+                <td class="px-4 py-2" x-text="subscription.userFirstName + ' ' + subscription.userLastName"></td>
+                <td class="px-4 py-2" x-text="subscription.institution"></td>
+                <td class="px-4 py-2" x-text="subscription.email"></td>
+                <td class="px-4 py-2">
+                  <span :class="subscription.status === 'Active' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'" 
+                        class="px-2 py-1 rounded text-xs" x-text="subscription.status"></span>
+                </td>
+                <td class="px-4 py-2" x-text="subscription.expiryDate"></td>
+                <td class="px-4 py-2" x-text="subscription.activationDate"></td>
+                <td class="px-4 py-2" x-text="subscription.reportsUsed + '/' + subscription.reportsTotal"></td>
+                <td class="px-4 py-2" x-text="'$' + subscription.totalValue"></td>
+                <td class="px-4 py-2">
+                  <button @click="editSubscription(subscription)" class="text-blue-500 hover:underline mr-2">
+                    <i class="fas fa-edit"></i>
+                  </button>
+                  <button @click="extendSubscription(subscription)" class="text-green-500 hover:underline mr-2">
+                    <i class="fas fa-plus"></i>
+                  </button>
+                  <button @click="transferReports(subscription)" class="text-purple-500 hover:underline">
+                    <i class="fas fa-exchange-alt"></i>
+                  </button>
+                </td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Expiring Soon Tab -->
+    <div x-show="activeTab === 'expiring'">
+      <header class="flex items-center justify-between mb-6">
+        <h2 class="text-2xl font-semibold">Expiring Subscriptions</h2>
+        <div class="flex space-x-2">
+          <button @click="generateExpiringList(30)" class="bg-orange-500 text-white px-4 py-2 rounded hover:bg-orange-600">
+            30 Days
+          </button>
+          <button @click="generateExpiringList(60)" class="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600">
+            60 Days
+          </button>
+          <button @click="generateExpiringList(90)" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
+            90 Days
+          </button>
+        </div>
+      </header>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div class="bg-white p-4 rounded shadow">
+          <h3 class="font-semibold text-orange-600">Expiring in 30 days</h3>
+          <p class="text-2xl font-bold" x-text="expiring30Days.length"></p>
+        </div>
+        <div class="bg-white p-4 rounded shadow">
+          <h3 class="font-semibold text-yellow-600">Expiring in 60 days</h3>
+          <p class="text-2xl font-bold" x-text="expiring60Days.length"></p>
+        </div>
+        <div class="bg-white p-4 rounded shadow">
+          <h3 class="font-semibold text-red-600">Expiring in 90 days</h3>
+          <p class="text-2xl font-bold" x-text="expiring90Days.length"></p>
+        </div>
+      </div>
+
+      <div class="overflow-x-auto bg-white shadow-md rounded">
+        <table class="min-w-full text-sm text-left">
+          <thead class="bg-gray-100 text-gray-700">
+            <tr>
+              <th class="px-4 py-2">User Name</th>
+              <th class="px-4 py-2">Email</th>
+              <th class="px-4 py-2">Institution</th>
+              <th class="px-4 py-2">Days Until Expiry</th>
+              <th class="px-4 py-2">Reports Remaining</th>
+              <th class="px-4 py-2">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="text-gray-600">
+            <template x-for="subscription in expiringSubscriptions" :key="subscription.id">
+              <tr class="border-t hover:bg-gray-50">
+                <td class="px-4 py-2" x-text="subscription.userFirstName + ' ' + subscription.userLastName"></td>
+                <td class="px-4 py-2" x-text="subscription.email"></td>
+                <td class="px-4 py-2" x-text="subscription.institution"></td>
+                <td class="px-4 py-2">
+                  <span :class="getDaysUntilExpiry(subscription.expiryDate) <= 30 ? 'text-red-600' : getDaysUntilExpiry(subscription.expiryDate) <= 60 ? 'text-yellow-600' : 'text-orange-600'" 
+                        x-text="getDaysUntilExpiry(subscription.expiryDate) + ' days'"></span>
+                </td>
+                <td class="px-4 py-2" x-text="subscription.reportsTotal - subscription.reportsUsed"></td>
+                <td class="px-4 py-2">
+                  <button @click="extendSubscription(subscription)" class="text-blue-500 hover:underline">
+                    <i class="fas fa-plus mr-1"></i>Extend
+                  </button>
+                </td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Analytics Tab -->
+    <div x-show="activeTab === 'analytics'">
+      <header class="mb-6">
+        <h2 class="text-2xl font-semibold">Usage Analytics</h2>
+      </header>
+
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div class="bg-white p-4 rounded shadow">
+          <h3 class="font-semibold text-blue-600">Total Users</h3>
+          <p class="text-2xl font-bold" x-text="users.length"></p>
+        </div>
+        <div class="bg-white p-4 rounded shadow">
+          <h3 class="font-semibold text-green-600">Active Subscriptions</h3>
+          <p class="text-2xl font-bold" x-text="subscriptions.filter(s => s.status === 'Active').length"></p>
+        </div>
+        <div class="bg-white p-4 rounded shadow">
+          <h3 class="font-semibold text-purple-600">Total Reports Used</h3>
+          <p class="text-2xl font-bold" x-text="totalReportsUsed"></p>
+        </div>
+        <div class="bg-white p-4 rounded shadow">
+          <h3 class="font-semibold text-orange-600">Revenue This Month</h3>
+          <p class="text-2xl font-bold" x-text="'$' + monthlyRevenue"></p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="bg-white p-4 rounded shadow">
+          <h3 class="font-semibold mb-4">Most Active Users</h3>
+          <div class="space-y-2">
+            <template x-for="user in mostActiveUsers" :key="user.id">
+              <div class="flex justify-between items-center">
+                <span x-text="user.firstName + ' ' + user.lastName"></span>
+                <span class="text-blue-600" x-text="user.reportsUsed + ' reports'"></span>
+              </div>
+            </template>
+          </div>
+        </div>
+        <div class="bg-white p-4 rounded shadow">
+          <h3 class="font-semibold mb-4">Module Usage</h3>
+          <div class="space-y-2">
+            <template x-for="module in moduleUsage" :key="module.name">
+              <div class="flex justify-between items-center">
+                <span x-text="module.name"></span>
+                <span class="text-green-600" x-text="module.usage + ' hours'"></span>
+              </div>
+            </template>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modals -->
+    <!-- Create User Modal -->
+    <div x-show="showCreateUserModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div class="bg-white p-6 rounded-lg w-96">
+        <h3 class="text-lg font-semibold mb-4">Create New User</h3>
+        <form @submit.prevent="createUser()">
+          <div class="space-y-4">
+            <input type="text" x-model="newUser.firstName" placeholder="First Name" class="w-full border px-3 py-2 rounded">
+            <input type="text" x-model="newUser.lastName" placeholder="Last Name" class="w-full border px-3 py-2 rounded">
+            <input type="text" x-model="newUser.institution" placeholder="Institution" class="w-full border px-3 py-2 rounded">
+            <input type="email" x-model="newUser.email" placeholder="Email" class="w-full border px-3 py-2 rounded">
+            <input type="number" x-model="newUser.reportsTotal" placeholder="Number of Reports" class="w-full border px-3 py-2 rounded">
+            <input type="date" x-model="newUser.expiryDate" class="w-full border px-3 py-2 rounded">
+          </div>
+          <div class="flex justify-end space-x-2 mt-4">
+            <button type="button" @click="showCreateUserModal = false" class="px-4 py-2 border rounded">Cancel</button>
+            <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded">Create</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Create Subscription Modal -->
+    <div x-show="showCreateSubscriptionModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div class="bg-white p-6 rounded-lg w-96">
+        <h3 class="text-lg font-semibold mb-4">Create New Subscription</h3>
+        <form @submit.prevent="createSubscription()">
+          <div class="space-y-4">
+            <select x-model="newSubscription.userId" class="w-full border px-3 py-2 rounded">
+              <option value="">Select User</option>
+              <template x-for="user in users" :key="user.id">
+                <option :value="user.id" x-text="user.firstName + ' ' + user.lastName"></option>
+              </template>
+            </select>
+            <input type="date" x-model="newSubscription.startDate" class="w-full border px-3 py-2 rounded">
+            <input type="date" x-model="newSubscription.endDate" class="w-full border px-3 py-2 rounded">
+            <input type="number" x-model="newSubscription.reportsTotal" placeholder="Number of Reports" class="w-full border px-3 py-2 rounded">
+            <input type="text" x-model="newSubscription.application" placeholder="Application" class="w-full border px-3 py-2 rounded">
+            <input type="number" x-model="newSubscription.totalValue" placeholder="Total Value" class="w-full border px-3 py-2 rounded">
+          </div>
+          <div class="flex justify-end space-x-2 mt-4">
+            <button type="button" @click="showCreateSubscriptionModal = false" class="px-4 py-2 border rounded">Cancel</button>
+            <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded">Create</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Add Email Modal -->
+    <div x-show="showAddEmailModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div class="bg-white p-6 rounded-lg w-96">
+        <h3 class="text-lg font-semibold mb-4">Add Email to Subscription</h3>
+        <form @submit.prevent="addEmailToSubscription()">
+          <div class="space-y-4">
+            <input type="email" x-model="newEmail.email" placeholder="Email Address" class="w-full border px-3 py-2 rounded">
+            <select x-model="newEmail.subscriptionId" class="w-full border px-3 py-2 rounded">
+              <option value="">Select Subscription</option>
+              <template x-for="subscription in subscriptions" :key="subscription.id">
+                <option :value="subscription.id" x-text="subscription.userFirstName + ' ' + subscription.userLastName"></option>
+              </template>
+            </select>
+          </div>
+          <div class="flex justify-end space-x-2 mt-4">
+            <button type="button" @click="showAddEmailModal = false" class="px-4 py-2 border rounded">Cancel</button>
+            <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded">Add Email</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    function dashboardData() {
+      return {
+        activeTab: 'users',
+        userSearch: '',
+        userSortBy: 'firstName',
+        userSortOrder: 'asc',
+        subscriptionSearch: '',
+        subscriptionSortBy: 'userFirstName',
+        subscriptionSortOrder: 'asc',
+        showCreateUserModal: false,
+        showCreateSubscriptionModal: false,
+        showAddEmailModal: false,
+        
+        // Centralized synchronized data store
+        dataStore: {
+          users: [
+            {
+              id: 1,
+              firstName: 'Alice',
+              lastName: 'Smith',
+              institution: 'University of California',
+              email: 'alice.smith@uc.edu',
+              status: 'Active',
+              expiryDate: '2025-03-15',
+              activationDate: '2024-03-15',
+              createdDate: '2024-01-10',
+              reportsUsed: 45,
+              reportsTotal: 100,
+              lastAccess: '2024-12-15',
+              totalUsage: 156,
+              moduleUsage: {
+                'Data Analysis': 45,
+                'Report Generation': 23,
+                'Visualization': 67,
+                'Export Tools': 21
+              }
+            },
+            {
+              id: 2,
+              firstName: 'Bob',
+              lastName: 'Johnson',
+              institution: 'Stanford University',
+              email: 'bob.johnson@stanford.edu',
+              status: 'Active',
+              expiryDate: '2025-06-20',
+              activationDate: '2024-06-20',
+              createdDate: '2024-02-15',
+              reportsUsed: 78,
+              reportsTotal: 150,
+              lastAccess: '2024-12-14',
+              totalUsage: 234,
+              moduleUsage: {
+                'Data Analysis': 78,
+                'Report Generation': 45,
+                'Visualization': 89,
+                'Export Tools': 22
+              }
+            },
+            {
+              id: 3,
+              firstName: 'Carol',
+              lastName: 'Williams',
+              institution: 'MIT',
+              email: 'carol.williams@mit.edu',
+              status: 'Expired',
+              expiryDate: '2024-12-01',
+              activationDate: '2023-12-01',
+              createdDate: '2023-10-20',
+              reportsUsed: 120,
+              reportsTotal: 120,
+              lastAccess: '2024-11-30',
+              totalUsage: 445,
+              moduleUsage: {
+                'Data Analysis': 120,
+                'Report Generation': 67,
+                'Visualization': 189,
+                'Export Tools': 69
+              }
+            },
+            {
+              id: 4,
+              firstName: 'David',
+              lastName: 'Brown',
+              institution: 'Harvard University',
+              email: 'david.brown@harvard.edu',
+              status: 'Active',
+              expiryDate: '2025-01-30',
+              activationDate: '2024-01-30',
+              createdDate: '2023-12-15',
+              reportsUsed: 12,
+              reportsTotal: 50,
+              lastAccess: '2024-12-10',
+              totalUsage: 89,
+              moduleUsage: {
+                'Data Analysis': 12,
+                'Report Generation': 8,
+                'Visualization': 45,
+                'Export Tools': 24
+              }
+            },
+            {
+              id: 5,
+              firstName: 'Emma',
+              lastName: 'Davis',
+              institution: 'Yale University',
+              email: 'emma.davis@yale.edu',
+              status: 'Active',
+              expiryDate: '2025-04-10',
+              activationDate: '2024-04-10',
+              createdDate: '2024-01-25',
+              reportsUsed: 89,
+              reportsTotal: 200,
+              lastAccess: '2024-12-15',
+              totalUsage: 312,
+              moduleUsage: {
+                'Data Analysis': 89,
+                'Report Generation': 34,
+                'Visualization': 123,
+                'Export Tools': 66
+              }
+            }
+          ],
+          
+          subscriptions: [
+            {
+              id: 1,
+              userId: 1,
+              userFirstName: 'Alice',
+              userLastName: 'Smith',
+              institution: 'University of California',
+              email: 'alice.smith@uc.edu',
+              status: 'Active',
+              expiryDate: '2025-03-15',
+              activationDate: '2024-03-15',
+              reportsUsed: 45,
+              reportsTotal: 100,
+              totalValue: 2500,
+              application: 'Research Suite Pro',
+              lastRun: '2024-12-15',
+              shares: 12,
+              timeSpent: 156
+            },
+            {
+              id: 2,
+              userId: 2,
+              userFirstName: 'Bob',
+              userLastName: 'Johnson',
+              institution: 'Stanford University',
+              email: 'bob.johnson@stanford.edu',
+              status: 'Active',
+              expiryDate: '2025-06-20',
+              activationDate: '2024-06-20',
+              reportsUsed: 78,
+              reportsTotal: 150,
+              totalValue: 3750,
+              application: 'Enterprise Analytics',
+              lastRun: '2024-12-14',
+              shares: 8,
+              timeSpent: 234
+            },
+            {
+              id: 3,
+              userId: 3,
+              userFirstName: 'Carol',
+              userLastName: 'Williams',
+              institution: 'MIT',
+              email: 'carol.williams@mit.edu',
+              status: 'Expired',
+              expiryDate: '2024-12-01',
+              activationDate: '2023-12-01',
+              reportsUsed: 120,
+              reportsTotal: 120,
+              totalValue: 3000,
+              application: 'Academic Research',
+              lastRun: '2024-11-30',
+              shares: 25,
+              timeSpent: 445
+            },
+            {
+              id: 4,
+              userId: 4,
+              userFirstName: 'David',
+              userLastName: 'Brown',
+              institution: 'Harvard University',
+              email: 'david.brown@harvard.edu',
+              status: 'Active',
+              expiryDate: '2025-01-30',
+              activationDate: '2024-01-30',
+              reportsUsed: 12,
+              reportsTotal: 50,
+              totalValue: 1250,
+              application: 'Basic Research',
+              lastRun: '2024-12-10',
+              shares: 3,
+              timeSpent: 89
+            },
+            {
+              id: 5,
+              userId: 5,
+              userFirstName: 'Emma',
+              userLastName: 'Davis',
+              institution: 'Yale University',
+              email: 'emma.davis@yale.edu',
+              status: 'Active',
+              expiryDate: '2025-04-10',
+              activationDate: '2024-04-10',
+              reportsUsed: 89,
+              reportsTotal: 200,
+              totalValue: 5000,
+              application: 'Premium Analytics',
+              lastRun: '2024-12-15',
+              shares: 15,
+              timeSpent: 312
+            }
+          ],
+          
+          // Track license usage and history
+          licenseHistory: [
+            {
+              userId: 1,
+              licenses: [
+                {
+                  id: 1,
+                  startDate: '2024-03-15',
+                  endDate: '2025-03-15',
+                  reportsTotal: 100,
+                  reportsUsed: 45,
+                  status: 'Active',
+                  application: 'Research Suite Pro'
+                }
+              ]
+            },
+            {
+              userId: 2,
+              licenses: [
+                {
+                  id: 2,
+                  startDate: '2024-06-20',
+                  endDate: '2025-06-20',
+                  reportsTotal: 150,
+                  reportsUsed: 78,
+                  status: 'Active',
+                  application: 'Enterprise Analytics'
+                }
+              ]
+            },
+            {
+              userId: 3,
+              licenses: [
+                {
+                  id: 3,
+                  startDate: '2023-12-01',
+                  endDate: '2024-12-01',
+                  reportsTotal: 120,
+                  reportsUsed: 120,
+                  status: 'Expired',
+                  application: 'Academic Research'
+                }
+              ]
+            },
+            {
+              userId: 4,
+              licenses: [
+                {
+                  id: 4,
+                  startDate: '2024-01-30',
+                  endDate: '2025-01-30',
+                  reportsTotal: 50,
+                  reportsUsed: 12,
+                  status: 'Active',
+                  application: 'Basic Research'
+                }
+              ]
+            },
+            {
+              userId: 5,
+              licenses: [
+                {
+                  id: 5,
+                  startDate: '2024-04-10',
+                  endDate: '2025-04-10',
+                  reportsTotal: 200,
+                  reportsUsed: 89,
+                  status: 'Active',
+                  application: 'Premium Analytics'
+                }
+              ]
+            }
+          ],
+          
+          // Module usage tracking
+          moduleUsage: {
+            'Data Analysis': 324,
+            'Report Generation': 177,
+            'Visualization': 523,
+            'Export Tools': 202
+          }
+        },
+
+        // Computed properties that sync data across all views
+        get users() {
+          return this.dataStore.users;
+        },
+
+        get subscriptions() {
+          return this.dataStore.subscriptions;
+        },
+
+        get moduleUsage() {
+          return Object.entries(this.dataStore.moduleUsage).map(([name, usage]) => ({ name, usage }));
+        },
+
+        newUser: {
+          firstName: '',
+          lastName: '',
+          institution: '',
+          email: '',
+          reportsTotal: 0,
+          expiryDate: ''
+        },
+
+        newSubscription: {
+          userId: '',
+          startDate: '',
+          endDate: '',
+          reportsTotal: 0,
+          application: '',
+          totalValue: 0
+        },
+
+        newEmail: {
+          email: '',
+          subscriptionId: ''
+        },
+
+        // Synchronized computed properties
+        get filteredUsers() {
+          let filtered = this.users.filter(user => 
+            user.firstName.toLowerCase().includes(this.userSearch.toLowerCase()) ||
+            user.lastName.toLowerCase().includes(this.userSearch.toLowerCase()) ||
+            user.institution.toLowerCase().includes(this.userSearch.toLowerCase()) ||
+            user.email.toLowerCase().includes(this.userSearch.toLowerCase())
+          );
+          
+          filtered.sort((a, b) => {
+            let aVal = a[this.userSortBy];
+            let bVal = b[this.userSortBy];
+            if (this.userSortOrder === 'asc') {
+              return aVal > bVal ? 1 : -1;
+            } else {
+              return aVal < bVal ? 1 : -1;
+            }
+          });
+          
+          return filtered;
+        },
+
+        get filteredSubscriptions() {
+          let filtered = this.subscriptions.filter(sub => 
+            sub.userFirstName.toLowerCase().includes(this.subscriptionSearch.toLowerCase()) ||
+            sub.userLastName.toLowerCase().includes(this.subscriptionSearch.toLowerCase()) ||
+            sub.institution.toLowerCase().includes(this.subscriptionSearch.toLowerCase()) ||
+            sub.email.toLowerCase().includes(this.subscriptionSearch.toLowerCase())
+          );
+          
+          filtered.sort((a, b) => {
+            let aVal = a[this.subscriptionSortBy];
+            let bVal = b[this.subscriptionSortBy];
+            if (this.subscriptionSortOrder === 'asc') {
+              return aVal > bVal ? 1 : -1;
+            } else {
+              return aVal < bVal ? 1 : -1;
+            }
+          });
+          
+          return filtered;
+        },
+
+        get expiring30Days() {
+          return this.subscriptions.filter(sub => {
+            const daysUntilExpiry = this.getDaysUntilExpiry(sub.expiryDate);
+            return daysUntilExpiry <= 30 && daysUntilExpiry > 0;
+          });
+        },
+
+        get expiring60Days() {
+          return this.subscriptions.filter(sub => {
+            const daysUntilExpiry = this.getDaysUntilExpiry(sub.expiryDate);
+            return daysUntilExpiry <= 60 && daysUntilExpiry > 30;
+          });
+        },
+
+        get expiring90Days() {
+          return this.subscriptions.filter(sub => {
+            const daysUntilExpiry = this.getDaysUntilExpiry(sub.expiryDate);
+            return daysUntilExpiry <= 90 && daysUntilExpiry > 60;
+          });
+        },
+
+        get expiringSubscriptions() {
+          return [...this.expiring30Days, ...this.expiring60Days, ...this.expiring90Days];
+        },
+
+        get mostActiveUsers() {
+          return [...this.users].sort((a, b) => b.reportsUsed - a.reportsUsed).slice(0, 5);
+        },
+
+        get totalReportsUsed() {
+          return this.users.reduce((total, user) => total + user.reportsUsed, 0);
+        },
+
+        get monthlyRevenue() {
+          return this.subscriptions.reduce((total, sub) => total + sub.totalValue, 0);
+        },
+
+        get totalModuleUsage() {
+          return Object.values(this.dataStore.moduleUsage).reduce((total, usage) => total + usage, 0);
+        },
+
+        getDaysUntilExpiry(expiryDate) {
+          const today = new Date();
+          const expiry = new Date(expiryDate);
+          const diffTime = expiry - today;
+          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+          return diffDays;
+        },
+
+        // Synchronized data methods
+        syncUserData(userId) {
+          const user = this.users.find(u => u.id === userId);
+          const subscription = this.subscriptions.find(s => s.userId === userId);
+          
+          if (user && subscription) {
+            // Sync reports used
+            subscription.reportsUsed = user.reportsUsed;
+            subscription.reportsTotal = user.reportsTotal;
+            
+            // Sync status
+            subscription.status = user.status;
+            
+            // Sync dates
+            subscription.expiryDate = user.expiryDate;
+            subscription.activationDate = user.activationDate;
+          }
+        },
+
+        syncSubscriptionData(subscriptionId) {
+          const subscription = this.subscriptions.find(s => s.id === subscriptionId);
+          const user = this.users.find(u => u.id === subscription.userId);
+          
+          if (subscription && user) {
+            // Sync user data from subscription
+            user.reportsUsed = subscription.reportsUsed;
+            user.reportsTotal = subscription.reportsTotal;
+            user.status = subscription.status;
+            user.expiryDate = subscription.expiryDate;
+            user.activationDate = subscription.activationDate;
+          }
+        },
+
+        generateExpiringList(days) {
+          const expiringList = this.subscriptions.filter(sub => {
+            const daysUntilExpiry = this.getDaysUntilExpiry(sub.expiryDate);
+            return daysUntilExpiry <= days && daysUntilExpiry > 0;
+          });
+          
+          console.log(`Subscriptions expiring in ${days} days:`, expiringList);
+          alert(`Found ${expiringList.length} subscriptions expiring in ${days} days. Check console for details.`);
+        },
+
+        createUser() {
+          const newId = Math.max(...this.users.map(u => u.id)) + 1;
+          const user = {
+            ...this.newUser,
+            id: newId,
+            status: 'Active',
+            activationDate: new Date().toISOString().split('T')[0],
+            createdDate: new Date().toISOString().split('T')[0],
+            reportsUsed: 0,
+            lastAccess: new Date().toISOString().split('T')[0],
+            totalUsage: 0,
+            moduleUsage: {
+              'Data Analysis': 0,
+              'Report Generation': 0,
+              'Visualization': 0,
+              'Export Tools': 0
+            }
+          };
+          
+          // Add to data store
+          this.dataStore.users.push(user);
+          
+          // Create corresponding subscription
+          const subscription = {
+            id: newId,
+            userId: newId,
+            userFirstName: user.firstName,
+            userLastName: user.lastName,
+            institution: user.institution,
+            email: user.email,
+            status: 'Active',
+            expiryDate: user.expiryDate,
+            activationDate: user.activationDate,
+            reportsUsed: 0,
+            reportsTotal: user.reportsTotal,
+            totalValue: user.reportsTotal * 25, // Calculate based on reports
+            application: 'Basic Research',
+            lastRun: new Date().toISOString().split('T')[0],
+            shares: 0,
+            timeSpent: 0
+          };
+          
+          this.dataStore.subscriptions.push(subscription);
+          
+          // Add to license history
+          this.dataStore.licenseHistory.push({
+            userId: newId,
+            licenses: [{
+              id: newId,
+              startDate: user.activationDate,
+              endDate: user.expiryDate,
+              reportsTotal: user.reportsTotal,
+              reportsUsed: 0,
+              status: 'Active',
+              application: 'Basic Research'
+            }]
+          });
+          
+          this.showCreateUserModal = false;
+          this.newUser = {
+            firstName: '',
+            lastName: '',
+            institution: '',
+            email: '',
+            reportsTotal: 0,
+            expiryDate: ''
+          };
+        },
+
+        createSubscription() {
+          const user = this.users.find(u => u.id == this.newSubscription.userId);
+          const newId = Math.max(...this.subscriptions.map(s => s.id)) + 1;
+          
+          const subscription = {
+            id: newId,
+            userId: this.newSubscription.userId,
+            userFirstName: user.firstName,
+            userLastName: user.lastName,
+            institution: user.institution,
+            email: user.email,
+            status: 'Active',
+            expiryDate: this.newSubscription.endDate,
+            activationDate: this.newSubscription.startDate,
+            reportsUsed: 0,
+            reportsTotal: this.newSubscription.reportsTotal,
+            totalValue: this.newSubscription.totalValue,
+            application: this.newSubscription.application,
+            lastRun: new Date().toISOString().split('T')[0],
+            shares: 0,
+            timeSpent: 0
+          };
+          
+          this.dataStore.subscriptions.push(subscription);
+          
+          // Update user data
+          user.reportsTotal += this.newSubscription.reportsTotal;
+          user.status = 'Active';
+          user.expiryDate = this.newSubscription.endDate;
+          
+          // Update license history
+          const userHistory = this.dataStore.licenseHistory.find(h => h.userId == this.newSubscription.userId);
+          if (userHistory) {
+            userHistory.licenses.push({
+              id: newId,
+              startDate: this.newSubscription.startDate,
+              endDate: this.newSubscription.endDate,
+              reportsTotal: this.newSubscription.reportsTotal,
+              reportsUsed: 0,
+              status: 'Active',
+              application: this.newSubscription.application
+            });
+          }
+          
+          this.showCreateSubscriptionModal = false;
+          this.newSubscription = {
+            userId: '',
+            startDate: '',
+            endDate: '',
+            reportsTotal: 0,
+            application: '',
+            totalValue: 0
+          };
+        },
+
+        addEmailToSubscription() {
+          console.log('Adding email to subscription:', this.newEmail);
+          this.showAddEmailModal = false;
+          this.newEmail = {
+            email: '',
+            subscriptionId: ''
+          };
+          alert('Email added to subscription. User will receive invitation to create account.');
+        },
+
+        editUser(user) {
+          console.log('Editing user:', user);
+          // Sync changes to subscription
+          this.syncUserData(user.id);
+        },
+
+        viewUserHistory(user) {
+          const history = this.dataStore.licenseHistory.find(h => h.userId === user.id);
+          console.log('User history:', history);
+          alert(`Viewing history for ${user.firstName} ${user.lastName}. Check console for details.`);
+        },
+
+        editSubscription(subscription) {
+          console.log('Editing subscription:', subscription);
+          // Sync changes to user
+          this.syncSubscriptionData(subscription.id);
+        },
+
+        extendSubscription(subscription) {
+          console.log('Extending subscription:', subscription);
+          // Implementation for extending subscription
+          const newExpiryDate = new Date(subscription.expiryDate);
+          newExpiryDate.setFullYear(newExpiryDate.getFullYear() + 1);
+          subscription.expiryDate = newExpiryDate.toISOString().split('T')[0];
+          
+          // Sync to user
+          this.syncSubscriptionData(subscription.id);
+        },
+
+        transferReports(subscription) {
+          console.log('Transferring reports from subscription:', subscription);
+          // Implementation for transferring reports
+          alert('Report transfer functionality would be implemented here.');
+        },
+
+        // Update module usage when user accesses modules
+        updateModuleUsage(userId, moduleName, usageTime) {
+          const user = this.users.find(u => u.id === userId);
+          if (user && user.moduleUsage[moduleName] !== undefined) {
+            user.moduleUsage[moduleName] += usageTime;
+            user.totalUsage += usageTime;
+            user.lastAccess = new Date().toISOString().split('T')[0];
+            
+            // Update global module usage
+            this.dataStore.moduleUsage[moduleName] += usageTime;
+          }
+        },
+
+        // Update report usage
+        updateReportUsage(userId, reportsUsed) {
+          const user = this.users.find(u => u.id === userId);
+          const subscription = this.subscriptions.find(s => s.userId === userId);
+          
+          if (user && subscription) {
+            user.reportsUsed = reportsUsed;
+            subscription.reportsUsed = reportsUsed;
+            user.lastAccess = new Date().toISOString().split('T')[0];
+            subscription.lastRun = new Date().toISOString().split('T')[0];
+          }
+        }
+      }
+    }
+  </script>
+</body>
+</html>
