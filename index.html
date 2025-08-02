@@ -114,81 +114,237 @@
 
     <!-- Subscriptions Tab -->
     <div x-show="activeTab === 'subscriptions'">
-      <header class="flex items-center justify-between mb-6">
-        <h2 class="text-2xl font-semibold">Subscription Management</h2>
-        <div class="flex space-x-2">
-          <button @click="showCreateSubscriptionModal = true" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-            <i class="fas fa-plus mr-2"></i>Create Subscription
-          </button>
-          <button @click="showAddEmailModal = true" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
-            <i class="fas fa-envelope mr-2"></i>Add Email
+      <!-- Subscription List View -->
+      <div x-show="!showSubscriptionDetails">
+        <header class="flex items-center justify-between mb-6">
+          <h2 class="text-2xl font-semibold">Subscription Management</h2>
+          <div class="flex space-x-2">
+            <button @click="showCreateSubscriptionModal = true" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+              <i class="fas fa-plus mr-2"></i>Create Subscription
+            </button>
+            <button @click="showAddEmailModal = true" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+              <i class="fas fa-envelope mr-2"></i>Add Email
+            </button>
+          </div>
+        </header>
+
+        <!-- Search & Filters -->
+        <div class="flex items-center mb-4 space-x-4">
+          <input type="text" x-model="subscriptionSearch" placeholder="Search subscriptions..."
+            class="w-full border px-4 py-2 rounded shadow-sm"/>
+          <select x-model="subscriptionSortBy" class="border px-4 py-2 rounded shadow-sm">
+            <option value="userFirstName">User First Name</option>
+            <option value="userLastName">User Last Name</option>
+            <option value="institution">Institution</option>
+            <option value="email">Email</option>
+            <option value="expiryDate">Expiry Date</option>
+            <option value="activationDate">Activation Date</option>
+            <option value="totalValue">Total Value</option>
+          </select>
+          <button @click="subscriptionSortOrder = subscriptionSortOrder === 'asc' ? 'desc' : 'asc'" class="bg-gray-100 text-gray-600 px-4 py-2 rounded hover:bg-gray-200">
+            <i class="fas fa-sort" :class="subscriptionSortOrder === 'asc' ? 'fa-sort-up' : 'fa-sort-down'"></i>
           </button>
         </div>
-      </header>
 
-      <!-- Search & Filters -->
-      <div class="flex items-center mb-4 space-x-4">
-        <input type="text" x-model="subscriptionSearch" placeholder="Search subscriptions..."
-          class="w-full border px-4 py-2 rounded shadow-sm"/>
-        <select x-model="subscriptionSortBy" class="border px-4 py-2 rounded shadow-sm">
-          <option value="userFirstName">User First Name</option>
-          <option value="userLastName">User Last Name</option>
-          <option value="institution">Institution</option>
-          <option value="email">Email</option>
-          <option value="expiryDate">Expiry Date</option>
-          <option value="activationDate">Activation Date</option>
-          <option value="totalValue">Total Value</option>
-        </select>
-        <button @click="subscriptionSortOrder = subscriptionSortOrder === 'asc' ? 'desc' : 'asc'" class="bg-gray-100 text-gray-600 px-4 py-2 rounded hover:bg-gray-200">
-          <i class="fas fa-sort" :class="subscriptionSortOrder === 'asc' ? 'fa-sort-up' : 'fa-sort-down'"></i>
-        </button>
+        <!-- Subscription Table -->
+        <div class="overflow-x-auto bg-white shadow-md rounded">
+          <table class="min-w-full text-sm text-left">
+            <thead class="bg-gray-100 text-gray-700">
+              <tr>
+                <th class="px-4 py-2">subscription ID</th>
+                <th class="px-4 py-2">Institution</th>
+                <th class="px-4 py-2">Number of Users</th>
+                <th class="px-4 py-2">Status</th>
+                <th class="px-4 py-2">Expiry</th>
+                <th class="px-4 py-2">Activation</th>
+                <th class="px-4 py-2">Reports</th>
+                <th class="px-4 py-2">Total Value</th>
+                <th class="px-4 py-2">Actions</th>
+              </tr>
+            </thead>
+            <tbody class="text-gray-600">
+              <template x-for="subscription in filteredSubscriptions" :key="subscription.id">
+                <tr class="border-t hover:bg-gray-50">
+                  <td class="px-4 py-2" x-text="subscription.subscriptionID"></td>
+                  <td class="px-4 py-2" x-text="subscription.institution"></td>
+                  <td class="px-4 py-2" x-text="subscription.numberOfUsers"></td>
+                  <td class="px-4 py-2">
+                    <span :class="subscription.status === 'Active' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'" 
+                          class="px-2 py-1 rounded text-xs" x-text="subscription.status"></span>
+                  </td>
+                  <td class="px-4 py-2" x-text="subscription.expiryDate"></td>
+                  <td class="px-4 py-2" x-text="subscription.activationDate"></td>
+                  <td class="px-4 py-2" x-text="subscription.reportsUsed + '/' + subscription.reportsTotal"></td>
+                  <td class="px-4 py-2" x-text="'$' + subscription.totalValue"></td>
+                  <td class="px-4 py-2">
+                    <button @click="editSubscription(subscription)" class="text-blue-500 hover:underline mr-2">
+                      <i class="fas fa-edit"></i>
+                    </button>
+                    <button @click="extendSubscription(subscription)" class="text-green-500 hover:underline mr-2">
+                      <i class="fas fa-plus"></i>
+                    </button>
+                    <button @click="viewSubscriptionDetails(subscription)" class="text-purple-500 hover:underline mr-2">
+                      <i class="fas fa-eye"></i>
+                    </button>
+                    <button @click="transferReports(subscription)" class="text-purple-500 hover:underline">
+                      <i class="fas fa-exchange-alt"></i>
+                    </button>
+                  </td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
       </div>
 
-      <!-- Subscription Table -->
-      <div class="overflow-x-auto bg-white shadow-md rounded">
-        <table class="min-w-full text-sm text-left">
-          <thead class="bg-gray-100 text-gray-700">
-            <tr>
-              <th class="px-4 py-2">User Name</th>
-              <th class="px-4 py-2">Institution</th>
-              <th class="px-4 py-2">Email</th>
-              <th class="px-4 py-2">Status</th>
-              <th class="px-4 py-2">Expiry</th>
-              <th class="px-4 py-2">Activation</th>
-              <th class="px-4 py-2">Reports</th>
-              <th class="px-4 py-2">Total Value</th>
-              <th class="px-4 py-2">Actions</th>
-            </tr>
-          </thead>
-          <tbody class="text-gray-600">
-            <template x-for="subscription in filteredSubscriptions" :key="subscription.id">
-              <tr class="border-t hover:bg-gray-50">
-                <td class="px-4 py-2" x-text="subscription.userFirstName + ' ' + subscription.userLastName"></td>
-                <td class="px-4 py-2" x-text="subscription.institution"></td>
-                <td class="px-4 py-2" x-text="subscription.email"></td>
-                <td class="px-4 py-2">
-                  <span :class="subscription.status === 'Active' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'" 
-                        class="px-2 py-1 rounded text-xs" x-text="subscription.status"></span>
-                </td>
-                <td class="px-4 py-2" x-text="subscription.expiryDate"></td>
-                <td class="px-4 py-2" x-text="subscription.activationDate"></td>
-                <td class="px-4 py-2" x-text="subscription.reportsUsed + '/' + subscription.reportsTotal"></td>
-                <td class="px-4 py-2" x-text="'$' + subscription.totalValue"></td>
-                <td class="px-4 py-2">
-                  <button @click="editSubscription(subscription)" class="text-blue-500 hover:underline mr-2">
-                    <i class="fas fa-edit"></i>
-                  </button>
-                  <button @click="extendSubscription(subscription)" class="text-green-500 hover:underline mr-2">
-                    <i class="fas fa-plus"></i>
-                  </button>
-                  <button @click="transferReports(subscription)" class="text-purple-500 hover:underline">
-                    <i class="fas fa-exchange-alt"></i>
-                  </button>
-                </td>
-              </tr>
-            </template>
-          </tbody>
-        </table>
+      <!-- Subscription Details Page -->
+      <div x-show="showSubscriptionDetails" class="space-y-6">
+        <!-- Header with Back Button -->
+        <header class="flex items-center justify-between mb-6">
+          <div class="flex items-center space-x-4">
+            <button @click="backToSubscriptionList()" class="text-blue-600 hover:text-blue-800">
+              <i class="fas fa-arrow-left mr-2"></i>Back to Subscriptions
+            </button>
+            <h2 class="text-2xl font-semibold">Subscription Details</h2>
+          </div>
+          <div class="flex space-x-2">
+            <button @click="showChangeAdminModal = true" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+              <i class="fas fa-crown mr-2"></i>Change Admin
+            </button>
+            <button @click="showAddUserModal = true" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+              <i class="fas fa-plus mr-2"></i>Add User
+            </button>
+          </div>
+        </header>
+
+        <!-- Subscription Information Cards -->
+        <div x-show="selectedSubscription" class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div class="bg-white p-6 rounded-lg shadow-md">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">Subscription Info</h3>
+            <div class="space-y-3">
+              <div>
+                <span class="text-sm text-gray-600">Subscription ID:</span>
+                <p class="font-medium" x-text="selectedSubscription.subscriptionID"></p>
+              </div>
+              <div>
+                <span class="text-sm text-gray-600">Institution:</span>
+                <p class="font-medium" x-text="selectedSubscription.institution"></p>
+              </div>
+              <div>
+                <span class="text-sm text-gray-600">Status:</span>
+                <span :class="selectedSubscription.status === 'Active' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'" 
+                      class="px-2 py-1 rounded text-sm font-medium" x-text="selectedSubscription.status"></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-white p-6 rounded-lg shadow-md">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">Usage Statistics</h3>
+            <div class="space-y-3">
+              <div>
+                <span class="text-sm text-gray-600">Total Users:</span>
+                <p class="font-medium text-xl" x-text="selectedSubscription.numberOfUsers"></p>
+              </div>
+              <div>
+                <span class="text-sm text-gray-600">Reports Used:</span>
+                <p class="font-medium" x-text="selectedSubscription.reportsUsed + '/' + selectedSubscription.reportsTotal"></p>
+              </div>
+              <div>
+                <span class="text-sm text-gray-600">Total Value:</span>
+                <p class="font-medium text-green-600" x-text="'$' + selectedSubscription.totalValue"></p>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-white p-6 rounded-lg shadow-md">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">Current Admin</h3>
+            <div class="space-y-3">
+              <div>
+                <span class="text-sm text-gray-600">Name:</span>
+                <p class="font-medium" x-text="getAdminUser(selectedSubscription.adminUserId).firstName + ' ' + getAdminUser(selectedSubscription.adminUserId).lastName"></p>
+              </div>
+              <div>
+                <span class="text-sm text-gray-600">Email:</span>
+                <p class="font-medium" x-text="getAdminUser(selectedSubscription.adminUserId).email"></p>
+              </div>
+              <div>
+                <span class="text-sm text-gray-600">Role:</span>
+                <span class="bg-purple-100 text-purple-600 px-2 py-1 rounded text-sm font-medium">Admin</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Users List -->
+        <div class="bg-white rounded-lg shadow-md">
+          <div class="p-6 border-b border-gray-200">
+            <h3 class="text-xl font-semibold text-gray-800">Subscription Users</h3>
+            <p class="text-sm text-gray-600 mt-1">Manage users in this subscription</p>
+          </div>
+          
+          <div class="overflow-x-auto">
+            <table class="min-w-full text-sm">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reports Used</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Access</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                </tr>
+              </thead>
+              <tbody class="bg-white divide-y divide-gray-200">
+                <template x-for="userId in selectedSubscription.users" :key="userId">
+                  <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <div class="flex items-center">
+                        <div class="flex-shrink-0 h-10 w-10">
+                          <div class="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                            <span class="text-sm font-medium text-blue-600" x-text="getSubscriptionUser(userId).firstName.charAt(0) + getSubscriptionUser(userId).lastName.charAt(0)"></span>
+                          </div>
+                        </div>
+                        <div class="ml-4">
+                          <div class="text-sm font-medium text-gray-900" x-text="getSubscriptionUser(userId).firstName + ' ' + getSubscriptionUser(userId).lastName"></div>
+                        </div>
+                      </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <div class="text-sm text-gray-900" x-text="getSubscriptionUser(userId).email"></div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <span :class="userId === selectedSubscription.adminUserId ? 'bg-purple-100 text-purple-600' : 'bg-gray-100 text-gray-600'" 
+                            class="px-2 py-1 rounded text-xs font-medium" x-text="userId === selectedSubscription.adminUserId ? 'Admin' : 'User'"></span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <div class="text-sm text-gray-900" x-text="getSubscriptionUser(userId).reportsUsed + '/' + getSubscriptionUser(userId).reportsTotal"></div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <div class="text-sm text-gray-900" x-text="getSubscriptionUser(userId).lastAccess"></div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <div class="flex space-x-2">
+                        <button @click="removeUserFromSubscription(selectedSubscription.id, userId)" 
+                                class="text-red-600 hover:text-red-900" 
+                                x-show="userId !== selectedSubscription.adminUserId">
+                          <i class="fas fa-trash"></i>
+                        </button>
+                        <button @click="changeAdmin(selectedSubscription.id, userId)" 
+                                class="text-blue-600 hover:text-blue-900" 
+                                x-show="userId !== selectedSubscription.adminUserId">
+                          <i class="fas fa-crown"></i>
+                        </button>
+                        <span x-show="userId === selectedSubscription.adminUserId" class="text-gray-400">
+                          <i class="fas fa-shield-alt"></i>
+                        </span>
+                      </div>
+                    </td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -240,7 +396,7 @@
             <template x-for="subscription in expiringSubscriptions" :key="subscription.id">
               <tr class="border-t hover:bg-gray-50">
                 <td class="px-4 py-2" x-text="subscription.userFirstName + ' ' + subscription.userLastName"></td>
-                <td class="px-4 py-2" x-text="subscription.email"></td>
+                <td class="px-4 py-2" x-text="subscription.numberOfUsers"></td>
                 <td class="px-4 py-2" x-text="subscription.institution"></td>
                 <td class="px-4 py-2">
                   <span :class="getDaysUntilExpiry(subscription.expiryDate) <= 30 ? 'text-red-600' : getDaysUntilExpiry(subscription.expiryDate) <= 60 ? 'text-yellow-600' : 'text-orange-600'" 
@@ -380,6 +536,28 @@
       </div>
     </div>
 
+
+
+    <!-- Change Admin Modal -->
+    <div x-show="showChangeAdminModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div class="bg-white p-6 rounded-lg w-96">
+        <h3 class="text-lg font-semibold mb-4">Change Admin</h3>
+        <div class="space-y-4">
+          <p class="text-sm text-gray-600">Select new admin from subscription users:</p>
+          <select x-model="newAdminUserId" class="w-full border px-3 py-2 rounded">
+            <option value="">Select New Admin</option>
+            <template x-for="userId in selectedSubscription.users" :key="userId">
+              <option :value="userId" x-text="getSubscriptionUser(userId).firstName + ' ' + getSubscriptionUser(userId).lastName"></option>
+            </template>
+          </select>
+        </div>
+        <div class="flex justify-end space-x-2 mt-4">
+          <button @click="showChangeAdminModal = false" class="px-4 py-2 border rounded">Cancel</button>
+          <button @click="confirmChangeAdmin()" class="px-4 py-2 bg-blue-600 text-white rounded">Change Admin</button>
+        </div>
+      </div>
+    </div>
+
   </main>
 
   <script>
@@ -395,6 +573,11 @@
         showCreateUserModal: false,
         showCreateSubscriptionModal: false,
         showAddEmailModal: false,
+        selectedSubscription: null,
+        showSubscriptionDetails: false,
+        showChangeAdminModal: false,
+        showAddUserModal: false,
+        newAdminUserId: '',
         
         // Centralized synchronized data store
         dataStore: {
@@ -447,7 +630,7 @@
               lastName: 'Williams',
               institution: 'MIT',
               email: 'carol.williams@mit.edu',
-              status: 'Expired',
+              status: 'Inactive',
               expiryDate: '2024-12-01',
               activationDate: '2023-12-01',
               createdDate: '2023-10-20',
@@ -512,6 +695,8 @@
               userId: 1,
               userFirstName: 'Alice',
               userLastName: 'Smith',
+              subscriptionID: '1001',
+              numberOfUsers: 10,
               institution: 'University of California',
               email: 'alice.smith@uc.edu',
               status: 'Active',
@@ -523,13 +708,17 @@
               application: 'Research Suite Pro',
               lastRun: '2024-12-15',
               shares: 12,
-              timeSpent: 156
+              timeSpent: 156,
+              adminUserId: 1,
+              users: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
             },
             {
               id: 2,
               userId: 2,
               userFirstName: 'Bob',
               userLastName: 'Johnson',
+              subscriptionID: '1002',
+              numberOfUsers: 10,
               institution: 'Stanford University',
               email: 'bob.johnson@stanford.edu',
               status: 'Active',
@@ -541,13 +730,17 @@
               application: 'Enterprise Analytics',
               lastRun: '2024-12-14',
               shares: 8,
-              timeSpent: 234
+              timeSpent: 234,
+              adminUserId: 2,
+              users: [11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
             },
             {
               id: 3,
               userId: 3,
               userFirstName: 'Carol',
               userLastName: 'Williams',
+              subscriptionID: '1003',
+              numberOfUsers: 20,
               institution: 'MIT',
               email: 'carol.williams@mit.edu',
               status: 'Expired',
@@ -559,13 +752,17 @@
               application: 'Academic Research',
               lastRun: '2024-11-30',
               shares: 25,
-              timeSpent: 445
+              timeSpent: 445,
+              adminUserId: 3,
+              users: [21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40]
             },
             {
               id: 4,
               userId: 4,
               userFirstName: 'David',
               userLastName: 'Brown',
+              subscriptionID: '1004',
+              numberOfUsers: 15,
               institution: 'Harvard University',
               email: 'david.brown@harvard.edu',
               status: 'Active',
@@ -577,13 +774,17 @@
               application: 'Basic Research',
               lastRun: '2024-12-10',
               shares: 3,
-              timeSpent: 89
+              timeSpent: 89,
+              adminUserId: 4,
+              users: [41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55]
             },
             {
               id: 5,
               userId: 5,
               userFirstName: 'Emma',
               userLastName: 'Davis',
+              subscriptionID: '10890',
+              numberOfUsers: 15,
               institution: 'Yale University',
               email: 'emma.davis@yale.edu',
               status: 'Active',
@@ -595,8 +796,93 @@
               application: 'Premium Analytics',
               lastRun: '2024-12-15',
               shares: 15,
-              timeSpent: 312
+              timeSpent: 312,
+              adminUserId: 5,
+              users: [56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70]
             }
+          ],
+          
+          // Additional users for subscriptions
+          subscriptionUsers: [
+            // Users for subscription 1001 (UC)
+            { id: 1, firstName: 'Alice', lastName: 'Smith', email: 'alice.smith@uc.edu', reportsUsed: 45, reportsTotal: 100, lastAccess: '2024-12-15' },
+            { id: 2, firstName: 'John', lastName: 'Davis', email: 'john.davis@uc.edu', reportsUsed: 23, reportsTotal: 50, lastAccess: '2024-12-14' },
+            { id: 3, firstName: 'Sarah', lastName: 'Wilson', email: 'sarah.wilson@uc.edu', reportsUsed: 67, reportsTotal: 100, lastAccess: '2024-12-13' },
+            { id: 4, firstName: 'Michael', lastName: 'Brown', email: 'michael.brown@uc.edu', reportsUsed: 12, reportsTotal: 50, lastAccess: '2024-12-12' },
+            { id: 5, firstName: 'Emily', lastName: 'Johnson', email: 'emily.johnson@uc.edu', reportsUsed: 89, reportsTotal: 150, lastAccess: '2024-12-11' },
+            { id: 6, firstName: 'David', lastName: 'Miller', email: 'david.miller@uc.edu', reportsUsed: 34, reportsTotal: 75, lastAccess: '2024-12-10' },
+            { id: 7, firstName: 'Lisa', lastName: 'Garcia', email: 'lisa.garcia@uc.edu', reportsUsed: 56, reportsTotal: 100, lastAccess: '2024-12-09' },
+            { id: 8, firstName: 'Robert', lastName: 'Martinez', email: 'robert.martinez@uc.edu', reportsUsed: 78, reportsTotal: 120, lastAccess: '2024-12-08' },
+            { id: 9, firstName: 'Jennifer', lastName: 'Anderson', email: 'jennifer.anderson@uc.edu', reportsUsed: 45, reportsTotal: 80, lastAccess: '2024-12-07' },
+            { id: 10, firstName: 'Christopher', lastName: 'Taylor', email: 'christopher.taylor@uc.edu', reportsUsed: 23, reportsTotal: 60, lastAccess: '2024-12-06' },
+            
+            // Users for subscription 1002 (Stanford)
+            { id: 11, firstName: 'Bob', lastName: 'Johnson', email: 'bob.johnson@stanford.edu', reportsUsed: 78, reportsTotal: 150, lastAccess: '2024-12-14' },
+            { id: 12, firstName: 'Maria', lastName: 'Gonzalez', email: 'maria.gonzalez@stanford.edu', reportsUsed: 45, reportsTotal: 100, lastAccess: '2024-12-13' },
+            { id: 13, firstName: 'James', lastName: 'Rodriguez', email: 'james.rodriguez@stanford.edu', reportsUsed: 67, reportsTotal: 120, lastAccess: '2024-12-12' },
+            { id: 14, firstName: 'Patricia', lastName: 'White', email: 'patricia.white@stanford.edu', reportsUsed: 89, reportsTotal: 150, lastAccess: '2024-12-11' },
+            { id: 15, firstName: 'Thomas', lastName: 'Lee', email: 'thomas.lee@stanford.edu', reportsUsed: 34, reportsTotal: 80, lastAccess: '2024-12-10' },
+            { id: 16, firstName: 'Nancy', lastName: 'Clark', email: 'nancy.clark@stanford.edu', reportsUsed: 56, reportsTotal: 100, lastAccess: '2024-12-09' },
+            { id: 17, firstName: 'Daniel', lastName: 'Lewis', email: 'daniel.lewis@stanford.edu', reportsUsed: 23, reportsTotal: 60, lastAccess: '2024-12-08' },
+            { id: 18, firstName: 'Karen', lastName: 'Hall', email: 'karen.hall@stanford.edu', reportsUsed: 78, reportsTotal: 120, lastAccess: '2024-12-07' },
+            { id: 19, firstName: 'Steven', lastName: 'Young', email: 'steven.young@stanford.edu', reportsUsed: 45, reportsTotal: 90, lastAccess: '2024-12-06' },
+            { id: 20, firstName: 'Betty', lastName: 'King', email: 'betty.king@stanford.edu', reportsUsed: 67, reportsTotal: 110, lastAccess: '2024-12-05' },
+            
+            // Users for subscription 1003 (MIT)
+            { id: 21, firstName: 'Carol', lastName: 'Williams', email: 'carol.williams@mit.edu', reportsUsed: 120, reportsTotal: 120, lastAccess: '2024-11-30' },
+            { id: 22, firstName: 'Richard', lastName: 'Scott', email: 'richard.scott@mit.edu', reportsUsed: 89, reportsTotal: 100, lastAccess: '2024-11-29' },
+            { id: 23, firstName: 'Helen', lastName: 'Green', email: 'helen.green@mit.edu', reportsUsed: 67, reportsTotal: 80, lastAccess: '2024-11-28' },
+            { id: 24, firstName: 'Joseph', lastName: 'Baker', email: 'joseph.baker@mit.edu', reportsUsed: 45, reportsTotal: 60, lastAccess: '2024-11-27' },
+            { id: 25, firstName: 'Deborah', lastName: 'Adams', email: 'deborah.adams@mit.edu', reportsUsed: 78, reportsTotal: 100, lastAccess: '2024-11-26' },
+            { id: 26, firstName: 'Edward', lastName: 'Nelson', email: 'edward.nelson@mit.edu', reportsUsed: 56, reportsTotal: 75, lastAccess: '2024-11-25' },
+            { id: 27, firstName: 'Sandra', lastName: 'Carter', email: 'sandra.carter@mit.edu', reportsUsed: 34, reportsTotal: 50, lastAccess: '2024-11-24' },
+            { id: 28, firstName: 'Brian', lastName: 'Mitchell', email: 'brian.mitchell@mit.edu', reportsUsed: 67, reportsTotal: 90, lastAccess: '2024-11-23' },
+            { id: 29, firstName: 'Donna', lastName: 'Roberts', email: 'donna.roberts@mit.edu', reportsUsed: 23, reportsTotal: 40, lastAccess: '2024-11-22' },
+            { id: 30, firstName: 'Ronald', lastName: 'Turner', email: 'ronald.turner@mit.edu', reportsUsed: 89, reportsTotal: 120, lastAccess: '2024-11-21' },
+            { id: 31, firstName: 'Michelle', lastName: 'Phillips', email: 'michelle.phillips@mit.edu', reportsUsed: 45, reportsTotal: 70, lastAccess: '2024-11-20' },
+            { id: 32, firstName: 'Anthony', lastName: 'Campbell', email: 'anthony.campbell@mit.edu', reportsUsed: 78, reportsTotal: 100, lastAccess: '2024-11-19' },
+            { id: 33, firstName: 'Dorothy', lastName: 'Parker', email: 'dorothy.parker@mit.edu', reportsUsed: 56, reportsTotal: 80, lastAccess: '2024-11-18' },
+            { id: 34, firstName: 'Kevin', lastName: 'Evans', email: 'kevin.evans@mit.edu', reportsUsed: 34, reportsTotal: 60, lastAccess: '2024-11-17' },
+            { id: 35, firstName: 'Laura', lastName: 'Edwards', email: 'laura.edwards@mit.edu', reportsUsed: 67, reportsTotal: 90, lastAccess: '2024-11-16' },
+            { id: 36, firstName: 'Jason', lastName: 'Collins', email: 'jason.collins@mit.edu', reportsUsed: 23, reportsTotal: 50, lastAccess: '2024-11-15' },
+            { id: 37, firstName: 'Donna', lastName: 'Stewart', email: 'donna.stewart@mit.edu', reportsUsed: 89, reportsTotal: 110, lastAccess: '2024-11-14' },
+            { id: 38, firstName: 'Matthew', lastName: 'Sanchez', email: 'matthew.sanchez@mit.edu', reportsUsed: 45, reportsTotal: 70, lastAccess: '2024-11-13' },
+            { id: 39, firstName: 'Carol', lastName: 'Morris', email: 'carol.morris@mit.edu', reportsUsed: 78, reportsTotal: 100, lastAccess: '2024-11-12' },
+            { id: 40, firstName: 'Gary', lastName: 'Rogers', email: 'gary.rogers@mit.edu', reportsUsed: 56, reportsTotal: 80, lastAccess: '2024-11-11' },
+            
+            // Users for subscription 1004 (Harvard)
+            { id: 41, firstName: 'David', lastName: 'Brown', email: 'david.brown@harvard.edu', reportsUsed: 12, reportsTotal: 50, lastAccess: '2024-12-10' },
+            { id: 42, firstName: 'Ruth', lastName: 'Reed', email: 'ruth.reed@harvard.edu', reportsUsed: 34, reportsTotal: 60, lastAccess: '2024-12-09' },
+            { id: 43, firstName: 'James', lastName: 'Cook', email: 'james.cook@harvard.edu', reportsUsed: 67, reportsTotal: 100, lastAccess: '2024-12-08' },
+            { id: 44, firstName: 'Janet', lastName: 'Morgan', email: 'janet.morgan@harvard.edu', reportsUsed: 45, reportsTotal: 80, lastAccess: '2024-12-07' },
+            { id: 45, firstName: 'Paul', lastName: 'Bell', email: 'paul.bell@harvard.edu', reportsUsed: 23, reportsTotal: 50, lastAccess: '2024-12-06' },
+            { id: 46, firstName: 'Margaret', lastName: 'Murphy', email: 'margaret.murphy@harvard.edu', reportsUsed: 78, reportsTotal: 120, lastAccess: '2024-12-05' },
+            { id: 47, firstName: 'Mark', lastName: 'Bailey', email: 'mark.bailey@harvard.edu', reportsUsed: 56, reportsTotal: 90, lastAccess: '2024-12-04' },
+            { id: 48, firstName: 'Elizabeth', lastName: 'Rivera', email: 'elizabeth.rivera@harvard.edu', reportsUsed: 34, reportsTotal: 70, lastAccess: '2024-12-03' },
+            { id: 49, firstName: 'Donald', lastName: 'Cooper', email: 'donald.cooper@harvard.edu', reportsUsed: 89, reportsTotal: 110, lastAccess: '2024-12-02' },
+            { id: 50, firstName: 'Jennifer', lastName: 'Richardson', email: 'jennifer.richardson@harvard.edu', reportsUsed: 23, reportsTotal: 60, lastAccess: '2024-12-01' },
+            { id: 51, firstName: 'George', lastName: 'Cox', email: 'george.cox@harvard.edu', reportsUsed: 67, reportsTotal: 100, lastAccess: '2024-11-30' },
+            { id: 52, firstName: 'Linda', lastName: 'Howard', email: 'linda.howard@harvard.edu', reportsUsed: 45, reportsTotal: 80, lastAccess: '2024-11-29' },
+            { id: 53, firstName: 'Kenneth', lastName: 'Ward', email: 'kenneth.ward@harvard.edu', reportsUsed: 78, reportsTotal: 120, lastAccess: '2024-11-28' },
+            { id: 54, firstName: 'Patricia', lastName: 'Torres', email: 'patricia.torres@harvard.edu', reportsUsed: 56, reportsTotal: 90, lastAccess: '2024-11-27' },
+            { id: 55, firstName: 'Steven', lastName: 'Peterson', email: 'steven.peterson@harvard.edu', reportsUsed: 34, reportsTotal: 70, lastAccess: '2024-11-26' },
+            
+            // Users for subscription 10890 (Yale)
+            { id: 56, firstName: 'Emma', lastName: 'Davis', email: 'emma.davis@yale.edu', reportsUsed: 89, reportsTotal: 200, lastAccess: '2024-12-15' },
+            { id: 57, firstName: 'Barbara', lastName: 'Gray', email: 'barbara.gray@yale.edu', reportsUsed: 67, reportsTotal: 150, lastAccess: '2024-12-14' },
+            { id: 58, firstName: 'Edward', lastName: 'James', email: 'edward.james@yale.edu', reportsUsed: 45, reportsTotal: 100, lastAccess: '2024-12-13' },
+            { id: 59, firstName: 'Susan', lastName: 'Watson', email: 'susan.watson@yale.edu', reportsUsed: 78, reportsTotal: 120, lastAccess: '2024-12-12' },
+            { id: 60, firstName: 'Brian', lastName: 'Brooks', email: 'brian.brooks@yale.edu', reportsUsed: 23, reportsTotal: 80, lastAccess: '2024-12-11' },
+            { id: 61, firstName: 'Jessica', lastName: 'Kelly', email: 'jessica.kelly@yale.edu', reportsUsed: 56, reportsTotal: 100, lastAccess: '2024-12-10' },
+            { id: 62, firstName: 'Ronald', lastName: 'Sanders', email: 'ronald.sanders@yale.edu', reportsUsed: 89, reportsTotal: 150, lastAccess: '2024-12-09' },
+            { id: 63, firstName: 'Sarah', lastName: 'Price', email: 'sarah.price@yale.edu', reportsUsed: 34, reportsTotal: 90, lastAccess: '2024-12-08' },
+            { id: 64, firstName: 'Anthony', lastName: 'Bennett', email: 'anthony.bennett@yale.edu', reportsUsed: 67, reportsTotal: 110, lastAccess: '2024-12-07' },
+            { id: 65, firstName: 'Karen', lastName: 'Wood', email: 'karen.wood@yale.edu', reportsUsed: 45, reportsTotal: 100, lastAccess: '2024-12-06' },
+            { id: 66, firstName: 'Kevin', lastName: 'Barnes', email: 'kevin.barnes@yale.edu', reportsUsed: 78, reportsTotal: 130, lastAccess: '2024-12-05' },
+            { id: 67, firstName: 'Nancy', lastName: 'Ross', email: 'nancy.ross@yale.edu', reportsUsed: 23, reportsTotal: 70, lastAccess: '2024-12-04' },
+            { id: 68, firstName: 'Jason', lastName: 'Henderson', email: 'jason.henderson@yale.edu', reportsUsed: 56, reportsTotal: 90, lastAccess: '2024-12-03' },
+            { id: 69, firstName: 'Betty', lastName: 'Coleman', email: 'betty.coleman@yale.edu', reportsUsed: 89, reportsTotal: 140, lastAccess: '2024-12-02' },
+            { id: 70, firstName: 'Gary', lastName: 'Jenkins', email: 'gary.jenkins@yale.edu', reportsUsed: 34, reportsTotal: 80, lastAccess: '2024-12-01' }
           ],
           
           // Track license usage and history
@@ -1046,6 +1332,57 @@
             user.lastAccess = new Date().toISOString().split('T')[0];
             subscription.lastRun = new Date().toISOString().split('T')[0];
           }
+        },
+
+        // Subscription details functions
+        viewSubscriptionDetails(subscription) {
+          this.selectedSubscription = subscription;
+          this.showSubscriptionDetails = true;
+        },
+
+        getSubscriptionUser(userId) {
+          return this.dataStore.subscriptionUsers.find(u => u.id === userId) || {
+            firstName: 'Unknown',
+            lastName: 'User',
+            email: 'unknown@example.com',
+            reportsUsed: 0,
+            reportsTotal: 0,
+            lastAccess: 'Never'
+          };
+        },
+
+        getAdminUser(adminUserId) {
+          return this.getSubscriptionUser(adminUserId);
+        },
+
+        removeUserFromSubscription(subscriptionId, userId) {
+          const subscription = this.subscriptions.find(s => s.id === subscriptionId);
+          if (subscription && userId !== subscription.adminUserId) {
+            subscription.users = subscription.users.filter(id => id !== userId);
+            subscription.numberOfUsers = subscription.users.length;
+            alert(`User removed from subscription ${subscription.subscriptionID}`);
+          } else {
+            alert('Cannot remove admin user from subscription');
+          }
+        },
+
+        changeAdmin(subscriptionId, userId) {
+          this.newAdminUserId = userId;
+          this.showChangeAdminModal = true;
+        },
+
+        confirmChangeAdmin() {
+          if (this.newAdminUserId && this.selectedSubscription) {
+            this.selectedSubscription.adminUserId = this.newAdminUserId;
+            this.showChangeAdminModal = false;
+            this.newAdminUserId = '';
+            alert('Admin changed successfully');
+          }
+        },
+
+        backToSubscriptionList() {
+          this.showSubscriptionDetails = true;
+          this.selectedSubscription = null;
         }
       }
     }
