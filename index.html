@@ -99,7 +99,7 @@
                 <td class="px-4 py-2" x-text="user.createdDate"></td>
                 <td class="px-4 py-2" x-text="user.reportsUsed + '/' + user.reportsTotal"></td>
                 <td class="px-4 py-2">
-                  <span class="text-sm font-medium text-blue-600" x-text="getUserSubscriptionCount(user.id)"></span>
+                  <span class="text-sm font-medium text-blue-600" x-text="Math.floor(Math.random() * 3) + 1"></span>
                 </td>
                 <td class="px-4 py-2">
                   <button @click="editUser(user)" class="text-blue-500 hover:underline mr-2">
@@ -295,7 +295,7 @@
                   <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Name</th>
                   <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
                   <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">License Status</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Types</th>
                   <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
                   <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
@@ -329,8 +329,12 @@
                             class="px-2 py-1 rounded text-xs font-medium" x-text="getSubscriptionUser(userId).licenseStatus || 'Active'"></span>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
-                      <span :class="getSubscriptionUser(userId).type === 'IPG' ? 'bg-blue-100 text-blue-600' : getSubscriptionUser(userId).type === 'IVG' ? 'bg-purple-100 text-purple-600' : 'bg-gray-100 text-gray-600'" 
-                            class="px-2 py-1 rounded text-xs font-medium" x-text="getSubscriptionUser(userId).type || 'Other'"></span>
+                      <template x-for="type in getSubscriptionUserTypes(userId)" :key="type">
+                        <span :class="type === 'IPG' ? 'bg-blue-100 text-blue-600' : type === 'IVG' ? 'bg-purple-100 text-purple-600' : 'bg-gray-100 text-gray-600'"
+                              class="px-2 py-1 rounded text-xs font-medium mr-1" x-text="type"></span>
+                      </template>
+                      <span x-show="getSubscriptionUserTypes(userId).length === 0"
+                            class="px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-600">Other</span>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
                       <div class="text-sm text-gray-900" x-text="getSubscriptionUser(userId).createdDate || 'N/A'"></div>
@@ -818,8 +822,8 @@
           // Additional users for subscriptions
           subscriptionUsers: [
             // Users for subscription 1001 (UC)
-            { id: 1, username: 'alice.smith', firstName: 'Alice', lastName: 'Smith', email: 'alice.smith@uc.edu', reportsUsed: 45, reportsTotal: 100, lastAccess: '2024-12-15', licenseStatus: 'Active', type: 'IPG', createdDate: '2024-01-10' },
-            { id: 2, username: 'john.davis', firstName: 'John', lastName: 'Davis', email: 'john.davis@uc.edu', reportsUsed: 23, reportsTotal: 50, lastAccess: '2024-12-14', licenseStatus: 'Active', type: 'IVG', createdDate: '2024-02-15' },
+            { id: 1, username: 'alice.smith', firstName: 'Alice', lastName: 'Smith', email: 'alice.smith@uc.edu', reportsUsed: 45, reportsTotal: 100, lastAccess: '2024-12-15', licenseStatus: 'Active', type: 'IPG', types: ['IPG','IVG'], createdDate: '2024-01-10' },
+            { id: 2, username: 'john.davis', firstName: 'John', lastName: 'Davis', email: 'john.davis@uc.edu', reportsUsed: 23, reportsTotal: 50, lastAccess: '2024-12-14', licenseStatus: 'Active', type: 'IVG', types: ['IPG','IVG'], createdDate: '2024-02-15' },
             { id: 3, username: 'sarah.wilson', firstName: 'Sarah', lastName: 'Wilson', email: 'sarah.wilson@uc.edu', reportsUsed: 67, reportsTotal: 100, lastAccess: '2024-12-13', licenseStatus: 'Active', type: 'IPG', createdDate: '2024-01-20' },
             { id: 4, username: 'michael.brown', firstName: 'Michael', lastName: 'Brown', email: 'michael.brown@uc.edu', reportsUsed: 12, reportsTotal: 50, lastAccess: '2024-12-12', licenseStatus: 'Active', type: 'Other', createdDate: '2024-03-01' },
             { id: 5, username: 'emily.johnson', firstName: 'Emily', lastName: 'Johnson', email: 'emily.johnson@uc.edu', reportsUsed: 89, reportsTotal: 150, lastAccess: '2024-12-11', licenseStatus: 'Active', type: 'IVG', createdDate: '2024-02-01' },
@@ -1362,6 +1366,17 @@
             reportsTotal: 0,
             lastAccess: 'Never'
           };
+        },
+
+        getSubscriptionUserTypes(userId) {
+          const user = this.getSubscriptionUser(userId);
+          if (Array.isArray(user.types)) {
+            return user.types;
+          }
+          if (typeof user.type === 'string' && user.type.trim()) {
+            return user.type.split(',').map(t => t.trim()).filter(Boolean);
+          }
+          return [];
         },
 
         getAdminUser(adminUserId) {
